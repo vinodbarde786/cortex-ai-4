@@ -173,3 +173,33 @@ export interface Transaction {
   payment_method: string | null;
   created_at: string;
 }
+
+export interface Trade {
+  id: string;
+  client_id: string | null;
+  client_name: string | null;
+  coin: string;
+  market_type: 'spot' | 'futures';
+  direction: 'long' | 'short';
+  entry_price: number;
+  amount: number;
+  quantity: number;
+  leverage: number;
+  position_size: number;
+  tp_pct: number | null;
+  sl_pct: number | null;
+  status: 'open' | 'closed_tp' | 'closed_sl' | 'cancelled';
+  executed_by: string;
+  created_at: string;
+}
+
+export interface ClientUpdate {
+  id: string;
+  client_id: string | null;
+  update_type: 'plan_change' | 'status_change' | 'license_update' | 'risk_action';
+  title: string;
+  message: string;
+  severity: 'info' | 'success' | 'warning' | 'critical';
+  executed_by: string;
+  created_at: string;
+}

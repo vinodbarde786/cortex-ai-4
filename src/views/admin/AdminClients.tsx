@@ -12,6 +12,7 @@ import {
 } from '@/data/adminMockData';
 
 import { useAdminCurrency } from '@/context/AdminCurrencyContext';
+import { useAuth } from '@/context/AuthContext';
 import { coins } from '@/data/mockData';
 import { supabase } from '@/lib/supabase';
 
@@ -53,6 +54,7 @@ const dummyClientTrades: Record<string, DemoTrade[]> = {
 
 export default function AdminClients() {
   const { formatCurrency } = useAdminCurrency();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [clients, setClients] = useState<AdminClient[]>(adminClients);
   const [modalMode, setModalMode] = useState<ModalMode>(null);
@@ -160,7 +162,7 @@ export default function AdminClients() {
     setSelected(null);
   };
 
-  const saveLicense = () => {
+  const saveLicense = async () => {
     if (!selected) return;
     setClients(prev => prev.map(c => c.id === selected.id ? {
       ...c,
@@ -170,10 +172,25 @@ export default function AdminClients() {
       unlockedIndicators: editIndicators,
       licenseValidUntil: editValidUntil || c.licenseValidUntil,
     } : c));
+
+    try {
+      await supabase.from('client_updates').insert({
+        client_id: user?.id ?? null,
+        update_type: 'license_update',
+        title: 'License Updated by Admin',
+        message: `Your license has been updated: ${editCycle} cycle, ${editBotLimit} bots max, valid until ${editValidUntil || selected.licenseValidUntil}.`,
+        severity: 'success',
+        executed_by: 'Master Admin',
+      });
+      console.log('[Admin] License update sent to client_updates table');
+    } catch (e) {
+      console.error('License update insert error:', e);
+    }
+
     closeModal();
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!selected) return;
     let newExpiry = editExpiry;
     if (extendMonths > 0) {
@@ -189,6 +206,21 @@ export default function AdminClients() {
       botLimit: planBotLimits[editPlan] ?? c.botLimit,
       connectedExchanges: editExchanges,
     } : c));
+
+    try {
+      await supabase.from('client_updates').insert({
+        client_id: user?.id ?? null,
+        update_type: 'plan_change',
+        title: `Plan Changed to ${editPlan}`,
+        message: `Your subscription plan has been updated to ${editPlan}${extendMonths > 0 ? ` and extended by ${extendMonths} month${extendMonths !== 1 ? 's' : ''}` : ''}. New expiry: ${newExpiry}.`,
+        severity: 'info',
+        executed_by: 'Master Admin',
+      });
+      console.log('[Admin] Plan change sent to client_updates table');
+    } catch (e) {
+      console.error('Plan change insert error:', e);
+    }
+
     closeModal();
   };
 
@@ -210,8 +242,8 @@ export default function AdminClients() {
     setExecutingTrade(true);
 
     try {
-      await supabase.from('trades').insert({
-        client_id: selected.id,
+      const { error } = await supabase.from('trades').insert({
+        client_id: user?.id ?? null,
         client_name: selected.name,
         coin: tradeCoin,
         market_type: marketType,
@@ -226,8 +258,10 @@ export default function AdminClients() {
         status: 'open',
         executed_by: 'Master Admin',
       });
+      if (error) console.error('Trade insert error:', error.message);
+      else console.log('[Admin] Trade inserted into trades table for client:', selected.name);
     } catch (e) {
-      console.error(e);
+      console.error('Trade execution error:', e);
     }
 
     setExecutingTrade(false);

@@ -24,6 +24,7 @@ import TutorialsView from '@/views/TutorialsView';
 import FAQView from '@/views/FAQView';
 import HelpCenterView from '@/views/HelpCenterView';
 import ReportBugView from '@/views/ReportBugView';
+import RealtimeToast from '@/components/RealtimeToast';
 
 function isAdminRoute() {
   return window.location.hash === '#admin' || window.location.pathname === '/admin';
@@ -149,6 +150,7 @@ function AppContent() {
       </div>
 
       <PanicModal open={panicOpen} onClose={() => setPanicOpen(false)} onConfirm={() => {}} />
+      <RealtimeToast />
     </div>
   );
 }
